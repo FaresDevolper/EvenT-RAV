@@ -98,33 +98,33 @@ class SubscribeView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="اشتراك", emoji="🔔", style=discord.ButtonStyle.success, custom_id="rav:subscribe")
+    @discord.ui.button(label="ارسل لي فعاليات السيرفر", emoji="🔔", style=discord.ButtonStyle.success, custom_id="rav:subscribe")
     async def subscribe(self, interaction: discord.Interaction, button: discord.ui.Button):
         user = interaction.user
         if not db.add(interaction.guild_id, user.id, str(user)):
-            return await interaction.response.send_message("أنت مشترك بالفعل ✅", ephemeral=True)
+            return await interaction.response.send_message("الإرسال مفعّل لك بالفعل ✅", ephemeral=True)
         try:
             await user.send(
                 embed=discord.Embed(
-                    title="تم تفعيل اشتراكك 🔔",
+                    title="تم تفعيل الإرسال 🔔",
                     description=f"راح توصلك إشعارات الفعاليات والأخبار من **{interaction.guild.name}** هنا في الخاص.",
                     color=COLOR,
                 )
             )
-            await interaction.response.send_message("تم اشتراكك بنجاح 🎉 راح توصلك الإشعارات بالخاص.", ephemeral=True)
+            await interaction.response.send_message("تم التفعيل 🎉 راح توصلك فعاليات السيرفر بالخاص.", ephemeral=True)
         except discord.Forbidden:
             await interaction.response.send_message(
-                "تم اشتراكك، لكن الخاص عندك مقفل ⚠️\n"
+                "تم التفعيل، لكن الخاص عندك مقفل ⚠️\n"
                 "افتح: إعدادات السيرفر ← الخصوصية ← السماح بالرسائل الخاصة من أعضاء السيرفر، "
                 "وإلا ما راح توصلك الإشعارات.",
                 ephemeral=True,
             )
 
-    @discord.ui.button(label="إلغاء الاشتراك", emoji="🔕", style=discord.ButtonStyle.danger, custom_id="rav:unsubscribe")
+    @discord.ui.button(label="إيقاف إرسال الفعاليات", emoji="🔕", style=discord.ButtonStyle.danger, custom_id="rav:unsubscribe")
     async def unsubscribe(self, interaction: discord.Interaction, button: discord.ui.Button):
         removed = db.remove(interaction.guild_id, interaction.user.id)
         await interaction.response.send_message(
-            "تم إلغاء اشتراكك 🔕" if removed else "أنت غير مشترك أصلاً.", ephemeral=True
+            "تم إيقاف إرسال الفعاليات لك 🔕" if removed else "الإرسال غير مفعّل لك أصلاً.", ephemeral=True
         )
 
 
@@ -249,7 +249,7 @@ async def help_cmd(ctx):
     e.description = (
         "تكتب الأمر مباشرة بدون أي علامة.\n\n"
         "**🔔 اللوحة**\n"
-        "`لوحة` ← يرسل لوحة الاشتراك في الروم الحالي\n"
+        "`لوحة` ← يرسل لوحة الفعاليات في الروم الحالي\n"
         "`لوحة #الروم` ← يرسلها في روم ثاني\n\n"
         "**📨 الإرسال**\n"
         "`ارسل العنوان | النص` ← يرسل لكل المشتركين بالخاص (بعد معاينة وتأكيد)\n"
@@ -276,8 +276,8 @@ async def help_cmd(ctx):
 async def panel(ctx, channel: discord.TextChannel = None):
     channel = channel or ctx.channel
     embed = discord.Embed(
-        title="🔔 اشترك في إشعارات الفعاليات",
-        description="اضغط **اشتراك** وراح توصلك كل الفعاليات والأخبار المهمة مباشرة في الخاص.\n\nتقدر تلغي اشتراكك في أي وقت.",
+        title="🔔 فعاليات السيرفر",
+        description="اضغط **ارسل لي فعاليات السيرفر** وراح توصلك كل الفعاليات والأخبار المهمة مباشرة في الخاص.\n\nتقدر توقف الإرسال في أي وقت.",
         color=COLOR,
     )
     if ctx.guild.icon:
@@ -345,7 +345,7 @@ async def stats(ctx):
     gid = ctx.guild.id
     day = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
     week = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
-    e = discord.Embed(title="📊 إحصائيات الاشتراك", color=COLOR)
+    e = discord.Embed(title="📊 إحصائيات الفعاليات", color=COLOR)
     e.add_field(name="إجمالي المشتركين", value=str(db.count(gid)))
     e.add_field(name="آخر 24 ساعة", value=str(db.count(gid, day)))
     e.add_field(name="آخر 7 أيام", value=str(db.count(gid, week)))
