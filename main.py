@@ -10,7 +10,7 @@ from aiohttp import web
 from discord.ext import commands
 
 TOKEN = os.environ["DISCORD_TOKEN"]
-OWNER_ID = int(os.environ["912349519990095892"]) if os.environ.get("OWNER_ID") else None
+OWNER_ID = 912349519990095892
 DB_PATH = os.environ.get("DB_PATH", "subscribers.db")
 PORT = int(os.environ.get("PORT", "8080"))
 COLOR = discord.Color.from_rgb(155, 89, 182)
