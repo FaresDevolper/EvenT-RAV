@@ -15,6 +15,18 @@ DB_PATH = os.environ.get("DB_PATH", "subscribers.db")
 PORT = int(os.environ.get("PORT", "8080"))
 COLOR = discord.Color.from_rgb(155, 89, 182)
 
+# ═════════════ إعدادات أمر «منشن الكل» ═════════════
+# حط هنا ايديات الرومات اللي تبي البوت يمنشن فيها everyone (ارقام بدون علامات)
+MENTION_CHANNEL_IDS = [
+    111111111111111111,
+    222222222222222222,
+    333333333333333333,
+]
+MENTION_ALLOWED_ID = 912349519990095892  # الوحيد اللي يقدر يستخدم الأمر
+MENTION_COMMAND = "منشن الكل"            # اسم الأمر (بدون بريفكس)
+MENTION_DELETE_AFTER = 3                 # ثواني قبل حذف المنشن
+# ═══════════════════════════════════════════════════
+
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -178,6 +190,51 @@ class SubscribeBot(commands.Bot):
     async def on_ready(self):
         print(f"Logged in as {self.user} ({self.user.id})")
 
+    # ───── أمر «منشن الكل» ─────
+    async def _mention_one(self, channel_id: int):
+        """يرسل everyone في روم واحد ثم يحذفه بعد المدة المحددة."""
+        try:
+            channel = self.get_channel(channel_id) or await self.fetch_channel(channel_id)
+            msg = await channel.send(
+                "@everyone",
+                allowed_mentions=discord.AllowedMentions(everyone=True),
+            )
+        except Exception as e:
+            print(f"[mention-all] فشل الإرسال في الروم {channel_id}: {e!r}")
+            return channel_id, False
+        await asyncio.sleep(MENTION_DELETE_AFTER)
+        try:
+            await msg.delete()
+        except Exception as e:
+            print(f"[mention-all] فشل حذف الرسالة في الروم {channel_id}: {e!r}")
+        return channel_id, True
+
+    async def handle_mention_all(self, message: discord.Message):
+        if not MENTION_CHANNEL_IDS:
+            return await message.reply("ما فيه رومات محددة داخل الكود.", mention_author=False)
+        results = await asyncio.gather(*(self._mention_one(cid) for cid in MENTION_CHANNEL_IDS))
+        failed = [cid for cid, ok in results if not ok]
+        try:
+            await message.add_reaction("✅" if not failed else "⚠️")
+        except discord.HTTPException:
+            pass
+        if failed:
+            ids = "\n".join(f"<#{cid}> (`{cid}`)" for cid in failed)
+            await message.reply(
+                f"⚠️ ما قدرت أرسل في هذي الرومات (تأكد من الايدي وصلاحيات البوت):\n{ids}",
+                mention_author=False,
+                delete_after=20,
+            )
+
+    async def on_message(self, message: discord.Message):
+        if message.author.bot:
+            return
+        if " ".join(message.content.split()) == MENTION_COMMAND:
+            if message.guild is not None and message.author.id == MENTION_ALLOWED_ID:
+                await self.handle_mention_all(message)
+            return  # أي شخص ثاني: تجاهل صامت
+        await self.process_commands(message)
+
     async def on_command_error(self, ctx: commands.Context, error):
         if isinstance(error, (commands.CommandNotFound, commands.CheckFailure)):
             return  # تجاهل صامت: أي رسالة عادية أو شخص مو الأونر
@@ -251,6 +308,8 @@ async def help_cmd(ctx):
         "**🔔 اللوحة**\n"
         "`لوحة` ← يرسل لوحة الفعاليات في الروم الحالي\n"
         "`لوحة #الروم` ← يرسلها في روم ثاني\n\n"
+        "**📣 المنشن**\n"
+        "`منشن الكل` ← يرسل everyone في الرومات المحددة بالكود ويحذفه بعد 3 ثواني\n\n"
         "**📨 الإرسال**\n"
         "`ارسل العنوان | النص` ← يرسل لكل المشتركين بالخاص (بعد معاينة وتأكيد)\n"
         "`ارسل النص` ← بدون عنوان\n"
