@@ -17,6 +17,7 @@ COLOR = discord.Color.from_rgb(155, 89, 182)
 
 # ═════════════ إعدادات أمر «منشن الكل» ═════════════
 # حط هنا ايديات الرومات اللي تبي البوت يمنشن فيها everyone (ارقام بدون علامات)
+# ملاحظة: نفس هذي الرومات تُستخدم لمنشن العضو الجديد عند دخوله السيرفر
 MENTION_CHANNEL_IDS = [
     1438114964794642543,
     1468865178727874718,
@@ -189,6 +190,7 @@ class SubscribeBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
+        intents.members = True  # مطلوب لاكتشاف دخول الأعضاء الجدد (فعّل Server Members Intent من بوابة المطورين)
         super().__init__(
             command_prefix="",  # بدون أي علامة: اكتب اسم الأمر مباشرة
             intents=intents,
@@ -244,6 +246,35 @@ class SubscribeBot(commands.Bot):
                 mention_author=False,
                 delete_after=20,
             )
+
+    # ───── منشن العضو الجديد ─────
+    async def _mention_member_one(self, channel_id: int, member: discord.Member):
+        """يمنشن العضو الجديد في روم واحد ثم يحذف المنشن بعد المدة المحددة."""
+        try:
+            channel = self.get_channel(channel_id) or await self.fetch_channel(channel_id)
+            # نتأكد إن الروم تابع لنفس السيرفر اللي دخله العضو
+            if getattr(channel, "guild", None) is None or channel.guild.id != member.guild.id:
+                return
+            msg = await channel.send(
+                member.mention,
+                allowed_mentions=discord.AllowedMentions(users=[member]),
+            )
+        except Exception as e:
+            print(f"[member-join] فشل المنشن في الروم {channel_id}: {e!r}")
+            return
+        await asyncio.sleep(MENTION_DELETE_AFTER)
+        try:
+            await msg.delete()
+        except Exception as e:
+            print(f"[member-join] فشل حذف المنشن في الروم {channel_id}: {e!r}")
+
+    async def on_member_join(self, member: discord.Member):
+        if member.bot or not MENTION_CHANNEL_IDS:
+            return
+        await asyncio.gather(
+            *(self._mention_member_one(cid, member) for cid in MENTION_CHANNEL_IDS),
+            return_exceptions=True,
+        )
 
     async def on_message(self, message: discord.Message):
         if message.author.bot:
