@@ -121,7 +121,7 @@ class SubscribeView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="ارسل لي فعاليات السيرفر", emoji="🔔", style=discord.ButtonStyle.success, custom_id="rav:subscribe")
+    @discord.ui.button(label="ارسل لي فعاليات السيرفر", emoji="🔔", style=discord.ButtonStyle.primary, custom_id="rav:subscribe")
     async def subscribe(self, interaction: discord.Interaction, button: discord.ui.Button):
         user = interaction.user
         if not db.add(interaction.guild_id, user.id, str(user)):
@@ -143,7 +143,7 @@ class SubscribeView(discord.ui.View):
                 ephemeral=True,
             )
 
-    @discord.ui.button(label="إيقاف إرسال الفعاليات", emoji="🔕", style=discord.ButtonStyle.danger, custom_id="rav:unsubscribe")
+    @discord.ui.button(label="إيقاف إرسال الفعاليات", emoji="🔕", style=discord.ButtonStyle.secondary, custom_id="rav:unsubscribe")
     async def unsubscribe(self, interaction: discord.Interaction, button: discord.ui.Button):
         removed = db.remove(interaction.guild_id, interaction.user.id)
         await interaction.response.send_message(
