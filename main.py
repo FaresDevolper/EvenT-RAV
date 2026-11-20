@@ -122,7 +122,7 @@ class SubscribeView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="ارسل لي فعاليات السيرفر", emoji="🔔", style=discord.ButtonStyle.primary, custom_id="rav:subscribe")
+    @discord.ui.button(label="ارسل لي فعاليات السيرفر", emoji="❄️", style=discord.ButtonStyle.primary, custom_id="rav:subscribe")
     async def subscribe(self, interaction: discord.Interaction, button: discord.ui.Button):
         user = interaction.user
         if not db.add(interaction.guild_id, user.id, str(user)):
@@ -130,21 +130,21 @@ class SubscribeView(discord.ui.View):
         try:
             await user.send(
                 embed=discord.Embed(
-                    title="تم تفعيل الإرسال 🔔",
+                    title="تم تفعيل الإرسال 🤘🏻",
                     description=f"راح توصلك إشعارات الفعاليات والأخبار من **{interaction.guild.name}** هنا في الخاص.",
                     color=COLOR,
                 )
             )
-            await interaction.response.send_message("تم التفعيل 🎉 راح توصلك فعاليات السيرفر بالخاص.", ephemeral=True)
+            await interaction.response.send_message("شطور 🎉 راح توصلك فعاليات السيرفر بالخاص .", ephemeral=True)
         except discord.Forbidden:
             await interaction.response.send_message(
-                "تم التفعيل، لكن الخاص عندك مقفل ⚠️\n"
+                "تم التفعيل ، لكن الخاص عندك مقفل ⚠️\n"
                 "افتح: إعدادات السيرفر ← الخصوصية ← السماح بالرسائل الخاصة من أعضاء السيرفر، "
                 "وإلا ما راح توصلك الإشعارات.",
                 ephemeral=True,
             )
 
-    @discord.ui.button(label="إيقاف إرسال الفعاليات", emoji="🔕", style=discord.ButtonStyle.secondary, custom_id="rav:unsubscribe")
+    @discord.ui.button(label="إيقاف إرسال الفعاليات", emoji="", style=discord.ButtonStyle.secondary, custom_id="rav:unsubscribe")
     async def unsubscribe(self, interaction: discord.Interaction, button: discord.ui.Button):
         removed = db.remove(interaction.guild_id, interaction.user.id)
         await interaction.response.send_message(
@@ -298,7 +298,7 @@ def parse_notice(text: str, guild: discord.Guild, attachments) -> tuple[str, str
         t, b = text.split("|", 1)
         if t.strip() and b.strip():
             title, body = t.strip(), b.strip()
-    title = (title or "فعالية جديدة ❄️")[:256]
+    title = (title or " فعالية جديدة ❄️ # ")[:256]
     content = f"**{title}**\n{body.strip()[:1600]}"
     for a in attachments:
         if a.content_type and a.content_type.startswith("image/"):
