@@ -298,7 +298,7 @@ def parse_notice(text: str, guild: discord.Guild, attachments) -> tuple[str, str
         t, b = text.split("|", 1)
         if t.strip() and b.strip():
             title, body = t.strip(), b.strip()
-    title = (title or " فعالية جديدة ❄️ # ")[:256]
+    title = (title or " # فعالية جديدة ❄️ ")[:256]
     content = f"**{title}**\n{body.strip()[:1600]}"
     for a in attachments:
         if a.content_type and a.content_type.startswith("image/"):
