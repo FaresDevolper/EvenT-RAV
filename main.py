@@ -27,6 +27,7 @@ MENTION_CHANNEL_IDS = [
     1545136298849865849,
     1465041190163578972,
     1569670243402645616,
+    
    
     
 
@@ -289,36 +290,29 @@ async def owner_only(ctx: commands.Context) -> bool:
 
 
 # ───────────────────────── دوال مساعدة ─────────────────────────
-def parse_notice(text: str, guild: discord.Guild, attachments) -> discord.Embed:
-    """'العنوان | النص' أو النص فقط."""
+def parse_notice(text: str, guild: discord.Guild, attachments) -> tuple[str, str]:
+    """'العنوان | النص' أو النص فقط. يرجع (العنوان، الرسالة العادية الجاهزة للإرسال)."""
     title, body = None, text
     if "|" in text:
         t, b = text.split("|", 1)
         if t.strip() and b.strip():
             title, body = t.strip(), b.strip()
-    embed = discord.Embed(
-        title=(title or "إشعار جديد 🔔")[:256],
-        description=body.strip()[:4000],
-        color=COLOR,
-        timestamp=datetime.now(timezone.utc),
-    )
-    embed.set_footer(text=guild.name)
-    if guild.icon:
-        embed.set_thumbnail(url=guild.icon.url)
+    title = (title or "فعالية جديدة ❄️")[:256]
+    content = f"**{title}**\n{body.strip()[:1600]}"
     for a in attachments:
         if a.content_type and a.content_type.startswith("image/"):
-            embed.set_image(url=a.url)
+            content += f"\n{a.url}"
             break
-    return embed
+    return title, content[:2000]
 
 
-async def run_broadcast(guild: discord.Guild, embed: discord.Embed, status: discord.Message):
+async def run_broadcast(guild: discord.Guild, title: str, content: str, status: discord.Message):
     subs = db.all(guild.id)
     sent = failed = 0
     for i, (uid, _, _) in enumerate(subs, 1):
         try:
             user = bot.get_user(uid) or await bot.fetch_user(uid)
-            await user.send(embed=embed)
+            await user.send(content)
             sent += 1
         except (discord.Forbidden, discord.NotFound, discord.HTTPException):
             failed += 1
@@ -328,7 +322,7 @@ async def run_broadcast(guild: discord.Guild, embed: discord.Embed, status: disc
             except discord.HTTPException:
                 pass
         await asyncio.sleep(1.2)  # حماية من الريت ليمت
-    db.log_broadcast(guild.id, embed.title, sent, failed)
+    db.log_broadcast(guild.id, title, sent, failed)
     await status.edit(
         content=f"✅ انتهى الإرسال\nوصلت: **{sent}**\nفشلت (الخاص مقفل أو الحساب محذوف): **{failed}**"
     )
@@ -391,24 +385,25 @@ async def broadcast(ctx, *, text: str):
     total = db.count(ctx.guild.id)
     if total == 0:
         return await ctx.reply("ما فيه مشتركين حالياً.", mention_author=False)
-    embed = parse_notice(text, ctx.guild, ctx.message.attachments)
+    title, content = parse_notice(text, ctx.guild, ctx.message.attachments)
     view = ConfirmView(ctx.author.id)
     msg = await ctx.reply(
-        f"هذي معاينة الرسالة، راح تنرسل إلى **{total}** مشترك. تأكيد؟",
-        embed=embed, view=view, mention_author=False,
+        f"هذي معاينة الرسالة، راح تنرسل إلى **{total}** مشترك. تأكيد؟\n\n{content}"[:2000],
+        view=view, mention_author=False,
+        allowed_mentions=discord.AllowedMentions.none(),
     )
     await view.wait()
     if view.value is not True:
         return await msg.edit(content="تم الإلغاء ✖️" if view.value is False else "انتهى الوقت، ما تم الإرسال.", embed=None, view=None)
     await msg.edit(content="⏳ جاري الإرسال...", embed=None, view=None)
-    await run_broadcast(ctx.guild, embed, msg)
+    await run_broadcast(ctx.guild, title, content, msg)
 
 
 @bot.command(name="تجربة")
 async def test_send(ctx, *, text: str):
-    embed = parse_notice(text, ctx.guild, ctx.message.attachments)
+    title, content = parse_notice(text, ctx.guild, ctx.message.attachments)
     try:
-        await ctx.author.send(embed=embed)
+        await ctx.author.send(content)
         await ctx.reply("أرسلت لك التجربة بالخاص ✅", mention_author=False)
     except discord.Forbidden:
         await ctx.reply("خاصك مقفل، افتحه وجرب مرة ثانية.", mention_author=False)
