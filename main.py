@@ -2,6 +2,7 @@ import asyncio
 import csv
 import io
 import os
+import re
 import sqlite3
 from datetime import datetime, timedelta, timezone
 
@@ -348,7 +349,7 @@ async def help_cmd(ctx):
         "`مشتركين` ← قائمة المشتركين\n"
         "`احصائيات` ← الأعداد والمشتركين الجدد\n"
         "`بحث @عضو` ← هل العضو مشترك؟\n"
-        "`اضافة @عضو` ← إضافة مشترك يدوياً\n"
+        "`اضافة @عضو` أو `اضافة id1 id2 id3` ← إضافة مشترك أو أكثر يدوياً\n"
         "`حذف @عضو` ← حذف مشترك\n"
         "`مسح_الكل` ← حذف كل المشتركين (بتأكيد)\n"
         "`تصدير` ← ملف CSV نسخة احتياطية\n\n"
@@ -451,11 +452,37 @@ async def search(ctx, user: discord.User):
 
 
 @bot.command(name="اضافة")
-async def add_sub(ctx, user: discord.User):
-    if db.add(ctx.guild.id, user.id, str(user)):
-        await ctx.reply(f"تمت إضافة {user.mention} ✅ (ما تم التأكد إن خاصه مفتوح)", mention_author=False)
-    else:
-        await ctx.reply("العضو مشترك أصلاً.", mention_author=False)
+async def add_sub(ctx, *, text: str):
+    # يلقط كل الايديات من الرسالة (ايدي مجرد أو منشن)، ويشيل المكرر
+    ids = list(dict.fromkeys(int(x) for x in re.findall(r"\d{17,20}", text)))
+    if not ids:
+        return await ctx.reply("⚠️ ما لقيت أي ايدي أو منشن في رسالتك.", mention_author=False)
+
+    added, existing, invalid = [], [], []
+    for uid in ids:
+        try:
+            user = bot.get_user(uid) or await bot.fetch_user(uid)
+        except (discord.NotFound, discord.HTTPException):
+            invalid.append(uid)
+            continue
+        if db.add(ctx.guild.id, user.id, str(user)):
+            added.append(user.id)
+        else:
+            existing.append(user.id)
+
+    parts = []
+    if added:
+        parts.append(f"✅ تمت إضافة **{len(added)}**:\n" + " ".join(f"<@{u}>" for u in added))
+    if existing:
+        parts.append(f"ℹ️ مشتركين أصلاً **{len(existing)}**:\n" + " ".join(f"<@{u}>" for u in existing))
+    if invalid:
+        parts.append(f"❌ ايديات غير صحيحة **{len(invalid)}**:\n" + " ".join(f"`{u}`" for u in invalid))
+    parts.append("(ما تم التأكد إن الخاص مفتوح عندهم)")
+    await ctx.reply(
+        "\n\n".join(parts)[:2000],
+        mention_author=False,
+        allowed_mentions=discord.AllowedMentions.none(),
+    )
 
 
 @bot.command(name="حذف")
