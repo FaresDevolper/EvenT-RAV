@@ -4,6 +4,8 @@ import io
 import os
 import re
 import sqlite3
+import sys
+import traceback
 from datetime import datetime, timedelta, timezone
 
 import discord
@@ -144,7 +146,7 @@ class SubscribeView(discord.ui.View):
                 ephemeral=True,
             )
 
-    @discord.ui.button(label="إيقاف إرسال الفعاليات", emoji="", style=discord.ButtonStyle.secondary, custom_id="rav:unsubscribe")
+    @discord.ui.button(label="إيقاف إرسال الفعاليات", emoji="🔕", style=discord.ButtonStyle.secondary, custom_id="rav:unsubscribe")
     async def unsubscribe(self, interaction: discord.Interaction, button: discord.ui.Button):
         removed = db.remove(interaction.guild_id, interaction.user.id)
         await interaction.response.send_message(
@@ -278,7 +280,10 @@ class SubscribeBot(commands.Bot):
         if isinstance(error, (commands.MissingRequiredArgument, commands.BadArgument)):
             usage = f"{ctx.invoked_with} {ctx.command.signature}".strip()
             return await ctx.reply(f"⚠️ طريقة الاستخدام الصحيحة:\n`{usage}`", mention_author=False)
-        print("Command error:", repr(error))
+        original = getattr(error, "original", error)
+        print("Command error:", repr(original), file=sys.stderr, flush=True)
+        traceback.print_exception(type(original), original, original.__traceback__, file=sys.stderr)
+        sys.stderr.flush()
         await ctx.reply("حصل خطأ غير متوقع، راجع اللوق.", mention_author=False)
 
 
