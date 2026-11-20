@@ -255,18 +255,13 @@ class SubscribeBot(commands.Bot):
             # نتأكد إن الروم تابع لنفس السيرفر اللي دخله العضو
             if getattr(channel, "guild", None) is None or channel.guild.id != member.guild.id:
                 return
-            msg = await channel.send(
+            await channel.send(
                 member.mention,
                 allowed_mentions=discord.AllowedMentions(users=[member]),
+                delete_after=MENTION_DELETE_AFTER,
             )
         except Exception as e:
             print(f"[member-join] فشل المنشن في الروم {channel_id}: {e!r}")
-            return
-        await asyncio.sleep(MENTION_DELETE_AFTER)
-        try:
-            await msg.delete()
-        except Exception as e:
-            print(f"[member-join] فشل حذف المنشن في الروم {channel_id}: {e!r}")
 
     async def on_member_join(self, member: discord.Member):
         if member.bot or not MENTION_CHANNEL_IDS:
